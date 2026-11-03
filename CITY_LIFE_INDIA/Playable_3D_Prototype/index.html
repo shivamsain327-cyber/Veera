@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>CITY LIFE INDIA - 3D Open World Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0f141d;
+      color: #fff;
+    }
+    #game-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* Top HUD */
+    #top-hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .hud-card {
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 179, 71, 0.3);
+      border-radius: 14px;
+      padding: 10px 16px;
+      pointer-events: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    #stats-bar {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .stat-badge.coins { color: #ffd152; }
+    .stat-badge.xp { color: #4cd137; }
+    .stat-badge.lvl {
+      background: linear-gradient(135deg, #e67e22, #d35400);
+      color: white;
+      padding: 3px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* Minimap */
+    #minimap-container {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      border: 3px solid #ff9f43;
+      overflow: hidden;
+      background: rgba(15, 20, 30, 0.9);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      pointer-events: auto;
+      z-index: 12;
+    }
+    #minimap-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    #minimap-compass {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: bold;
+      color: #ff9f43;
+    }
+
+    /* Top Right Buttons */
+    #top-actions {
+      display: flex;
+      gap: 10px;
+      margin-left: auto;
+    }
+    .hud-btn {
+      background: rgba(28, 36, 56, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 8px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-btn:hover, .hud-btn:active {
+      background: #ff9f43;
+      color: #111;
+      border-color: #ff9f43;
+      transform: translateY(-2px);
+    }
+
+    /* Mission Tracker */
+    #mission-banner {
+      position: absolute;
+      top: 160px;
+      left: 16px;
+      max-width: 310px;
+      background: rgba(18, 24, 38, 0.88);
+      backdrop-filter: blur(6px);
+      border-left: 4px solid #ff9f43;
+      border-radius: 0 12px 12px 0;
+      padding: 12px 16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+    #mission-banner.hidden {
+      transform: translateX(-120%);
+      opacity: 0;
+    }
+    #mission-type-tag {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #ff9f43;
+      margin-bottom: 3px;
+    }
+    #mission-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    #mission-desc {
+      font-size: 12px;
+      color: #c8d1e0;
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+    #mission-timer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffd152;
+    }
+
+    /* Speedometer */
+    #speedo-container {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(20,25,38,0.95) 40%, rgba(10,12,20,0.98) 100%);
+      border: 3px solid #ff9f43;
+      box-shadow: 0 8px 30px rgba(255, 159, 67, 0.25);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #speedo-val {
+      font-size: 38px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1;
+    }
+    #speedo-unit {
+      font-size: 11px;
+      font-weight: 700;
+      color: #ff9f43;
+      letter-spacing: 1.5px;
+      margin-top: 4px;
+    }
+
+    /* Enter/Exit Vehicle Button */
+    #vehicle-action-btn {
+      position: absolute;
+      bottom: 165px;
+      right: 30px;
+      padding: 14px 22px;
+      background: linear-gradient(135deg, #ff9f43, #ee5253);
+      border: none;
+      border-radius: 30px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 800;
+      box-shadow: 0 6px 20px rgba(238, 82, 83, 0.5);
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 15;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    /* Mobile Controls */
+    #mobile-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 200px;
+      pointer-events: none;
+      z-index: 11;
+    }
+    #joystick-zone {
+      position: absolute;
+      bottom: 25px;
+      left: 25px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      margin-top: -24px;
+      margin-left: -24px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ff9f43, #d35400);
+      box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+    #action-buttons-zone {
+      position: absolute;
+      bottom: 25px;
+      right: 170px;
+      display: flex;
+      gap: 14px;
+      pointer-events: auto;
+    }
+    .action-circle-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(20, 26, 42, 0.85);
+      border: 2px solid rgba(255, 179, 71, 0.4);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+    .action-circle-btn:active {
+      background: #ff9f43;
+      color: #111;
+      transform: scale(0.92);
+    }
+
+    /* Modal Windows */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(8, 10, 16, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    .modal-card {
+      background: #141b2d;
+      border: 2px solid #ff9f43;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 520px;
+      padding: 26px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-card h2 {
+      color: #ff9f43;
+      font-size: 22px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .modal-card p.subtitle {
+      color: #a4b0be;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    .close-btn {
+      float: right;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .close-btn:hover { color: #fff; }
+
+    /* Missions List */
+    .mission-item-card {
+      background: #1a233a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    .mission-item-card:hover {
+      border-color: #ff9f43;
+      transform: translateY(-2px);
+    }
+    .mission-info h4 {
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .mission-info p {
+      font-size: 12px;
+      color: #a4b0be;
+      margin-bottom: 6px;
+    }
+    .mission-reward-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffd152;
+    }
+    .start-btn {
+      background: #ff9f43;
+      color: #111;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .start-btn:hover {
+      background: #ffa801;
+    }
+
+    /* Garage Swatches */
+    .color-swatches-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .color-swatch {
+      height: 48px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s;
+    }
+    .color-swatch:hover, .color-swatch.active {
+      transform: scale(1.12);
+      border-color: #fff;
+    }
+
+    /* Notification Toast */
+    #toast-msg {
+      position: absolute;
+      top: 85px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-30px);
+      background: rgba(18, 24, 38, 0.95);
+      border: 2px solid #ff9f43;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #toast-msg.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Help Overlay */
+    #controls-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 170px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.65);
+      background: rgba(0,0,0,0.4);
+      padding: 6px 12px;
+      border-radius: 8px;
+      pointer-events: none;
+      z-index: 10;
+    }
+    @media (max-width: 768px) {
+      #controls-hint { display: none; }
+      #mission-banner { max-width: 240px; top: 150px; font-size: 11px; }
+      #action-buttons-zone { right: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas -->
+  <div id="game-canvas"></div>
+
+  <!-- Minimap -->
+  <div id="minimap-container">
+    <div id="minimap-compass">N</div>
+    <canvas id="minimap-canvas" width="130" height="130"></canvas>
+  </div>
+
+  <!-- Top HUD Bar -->
+  <div id="top-hud">
+    <div style="width: 140px;"></div> <!-- Spacer for Minimap -->
+    <div class="hud-card" id="stats-bar">
+      <div class="stat-badge lvl" id="player-lvl">LVL 1</div>
+      <div class="stat-badge coins">
+        <span>🪙</span> <span id="player-coins">1,000</span>
+      </div>
+      <div class="stat-badge xp">
+        <span>⭐</span> <span id="player-xp">0 XP</span>
+      </div>
+    </div>
+
+    <div id="top-actions">
+      <button class="hud-btn" id="btn-missions">🎯 Missions</button>
+      <button class="hud-btn" id="btn-garage">🚗 Garage</button>
+      <button class="hud-btn" id="btn-daynight">☀️ Day</button>
+      <button class="hud-btn" id="btn-camera">🎥 View</button>
+    </div>
+  </div>
+
+  <!-- Mission Banner -->
+  <div id="mission-banner" class="hidden">
+    <div id="mission-type-tag">MISSION IN PROGRESS</div>
+    <div id="mission-title">Jaipur Chai Delivery</div>
+    <div id="mission-desc">Pick up parcel from Old Johari Market</div>
+    <div id="mission-timer-row">
+      <span>DIST: <span id="mission-dist">120m</span></span>
+      <span id="mission-timer">⏱️ 01:25</span>
+    </div>
+  </div>
+
+  <!-- Speedometer (when driving) -->
+  <div id="speedo-container">
+    <div id="speedo-val">0</div>
+    <div id="speedo-unit">KM/H</div>
+  </div>
+
+  <!-- Enter/Exit Button -->
+  <button id="vehicle-action-btn">
+    <span>🚗</span> <span id="vehicle-action-text">DRIVE CAR [F]</span>
+  </button>
+
+  <!-- Desktop Controls Tip -->
+  <div id="controls-hint">
+    WASD: Move / Steer | Shift: Sprint | Space: Jump / Handbrake | F: Enter / Exit Car | H: Horn | C: Camera
+  </div>
+
+  <!-- Mobile Controls Zone -->
+  <div id="mobile-controls">
+    <div id="joystick-zone">
+      <div id="joystick-knob"></div>
+    </div>
+    <div id="action-buttons-zone">
+      <div class="action-circle-btn" id="btn-jump">JUMP</div>
+      <div class="action-circle-btn" id="btn-sprint">RUN</div>
+      <div class="action-circle-btn" id="btn-horn">HORN</div>
+    </div>
+  </div>
+
+  <!-- Toast Message -->
+  <div id="toast-msg">Welcome to Jaipur City!</div>
+
+  <!-- Missions Modal -->
+  <div class="modal-overlay" id="missions-modal">
+    <div class="modal-card">
+      <button class="close-btn" onclick="closeModal('missions-modal')">&times;</button>
+      <h2>City Missions</h2>
+      <p class="subtitle">Complete open-world missions across Jaipur to earn Coins and XP!</p>
+      <div id="missions-list-container"></div>
+    </div>
+  </div>
+
+  <!-- Garage Modal -->
+  <div class="modal-overlay" id="garage-modal">
+    <div class="modal-card">
+      <button class="close-btn" onclick="closeModal('garage-modal')">&times;</button>
+      <h2>Vehicle Garage</h2>
+      <p class="subtitle">Customize vehicle paint and select your ride for exploring the city.</p>
+
+      <div style="display:flex; justify-content:space-around; margin-bottom:18px;">
+        <button class="hud-btn" id="select-car-btn" style="flex:1; margin-right:8px; justify-content:center;">🏎️ Desi Cruiser Car</button>
+        <button class="hud-btn" id="select-bike-btn" style="flex:1; justify-content:center;">🏍️ Rajputana 350 Bike</button>
+      </div>
+
+      <h4 style="font-size:14px; color:#ff9f43; margin-bottom:8px;">BODY PAINT COLORS</h4>
+      <div class="color-swatches-grid">
+        <div class="color-swatch active" style="background:#d32f2f;" onclick="setVehicleColor('#d32f2f', this)" title="Jaipur Royal Crimson"></div>
+        <div class="color-swatch" style="background:#1976d2;" onclick="setVehicleColor('#1976d2', this)" title="Jodhpur Indigo Blue"></div>
+        <div class="color-swatch" style="background:#f39c12;" onclick="setVehicleColor('#f39c12', this)" title="Marigold Saffron"></div>
+        <div class="color-swatch" style="background:#27ae60;" onclick="setVehicleColor('#27ae60', this)" title="Shekhawati Emerald"></div>
+        <div class="color-swatch" style="background:#2c3e50;" onclick="setVehicleColor('#2c3e50', this)" title="Midnight Shadow"></div>
+        <div class="color-swatch" style="background:#ecf0f1;" onclick="setVehicleColor('#ecf0f1', this)" title="Khadi White"></div>
+      </div>
+
+      <button class="start-btn" style="width:100%; padding:12px; font-size:15px; margin-top:10px;" onclick="closeModal('garage-modal')">Apply & Close</button>
+    </div>
+  </div>
+
+  <!-- Include Three.js -->
+  <script src="three.min.js"></script>
+
+  <script>
+    /* ==========================================================================
+       CITY LIFE INDIA - FULL 3D OPEN WORLD LIFE SIMULATION
+       ========================================================================== */
+
+    // --- GAME STATE & SAVE SYSTEM ---
+    const SAVE_KEY = "CITY_LIFE_INDIA_SAVE_V1";
+    let gameSave = {
+      coins: 1000,
+      xp: 0,
+      level: 1,
+      carColor: "#d32f2f",
+      selectedVehicle: "car",
+      completedMissions: []
+    };
+
+    function loadGameSave() {
+      try {
+        const stored = localStorage.getItem(SAVE_KEY);
+        if (stored) {
+          gameSave = Object.assign(gameSave, JSON.parse(stored));
+        }
+      } catch(e) { console.warn(e); }
+      updateHUD();
+    }
+
+    function saveGameProgress() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(gameSave));
+      } catch(e) { console.warn(e); }
+      updateHUD();
+    }
+
+    function addRewards(coins, xp) {
+      gameSave.coins += coins;
+      gameSave.xp += xp;
+      const targetLvl = 1 + Math.floor(gameSave.xp / 500);
+      if (targetLvl > gameSave.level) {
+        gameSave.level = targetLvl;
+        showToast(`🎉 LEVEL UP! You reached Level ${gameSave.level}!`);
+        playSound('success');
+      } else {
+        playSound('coins');
+      }
+      saveGameProgress();
+    }
+
+    function updateHUD() {
+      document.getElementById('player-coins').innerText = Number(gameSave.coins).toLocaleString();
+      document.getElementById('player-xp').innerText = `${gameSave.xp} XP`;
+      document.getElementById('player-lvl').innerText = `LVL ${gameSave.level}`;
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast-msg');
+      toast.innerText = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    // --- PROCEDURAL WEB AUDIO SYNTHESIZER ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let engineOsc = null;
+    let engineGain = null;
+
+    function playSound(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+
+      if (type === 'coins' || type === 'ding') {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(1400, now + 0.15);
+        g.gain.setValueAtTime(0.3, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } else if (type === 'success') {
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+          g.gain.setValueAtTime(0.25, now + idx * 0.1);
+          g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.35);
+          osc.connect(g);
+          g.connect(audioCtx.destination);
+          osc.start(now + idx * 0.1);
+          osc.stop(now + idx * 0.1 + 0.35);
+        });
+      } else if (type === 'horn') {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc1.type = 'sawtooth'; osc2.type = 'sawtooth';
+        osc1.frequency.setValueAtTime(420, now);
+        osc2.frequency.setValueAtTime(480, now);
+        g.gain.setValueAtTime(0.3, now);
+        g.gain.linearRampToValueAtTime(0.01, now + 0.35);
+        osc1.connect(g); osc2.connect(g);
+        g.connect(audioCtx.destination);
+        osc1.start(now); osc2.start(now);
+        osc1.stop(now + 0.35); osc2.stop(now + 0.35);
+      } else if (type === 'step') {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, now);
+        g.gain.setValueAtTime(0.12, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      }
+    }
+
+    function initEngineAudio() {
+      if (engineOsc) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      engineOsc = audioCtx.createOscillator();
+      engineGain = audioCtx.createGain();
+      engineOsc.type = 'sawtooth';
+      engineOsc.frequency.setValueAtTime(55, audioCtx.currentTime);
+      engineGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
+      engineOsc.connect(engineGain);
+      engineGain.connect(audioCtx.destination);
+      engineOsc.start();
+    }
+
+    function updateEngineSound(speedRatio, isDriving) {
+      if (!engineGain) return;
+      const now = audioCtx.currentTime;
+      if (isDriving) {
+        engineGain.gain.setTargetAtTime(0.12, now, 0.1);
+        const freq = 55 + speedRatio * 180;
+        engineOsc.frequency.setTargetAtTime(freq, now, 0.08);
+      } else {
+        engineGain.gain.setTargetAtTime(0.0, now, 0.1);
+      }
+    }
+
+    // --- THREE.JS 3D SCENE SETUP ---
+    const container = document.getElementById('game-canvas');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Jaipur sunny sky
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.0035);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 800);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const hemiLight = new THREE.HemisphereLight(0xfffaed, 0x444455, 0.65);
+    scene.add(hemiLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+    sunLight.position.set(100, 140, 80);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 400;
+    const shadowD = 120;
+    sunLight.shadow.camera.left = -shadowD;
+    sunLight.shadow.camera.right = shadowD;
+    sunLight.shadow.camera.top = shadowD;
+    sunLight.shadow.camera.bottom = -shadowD;
+    scene.add(sunLight);
+
+    let isNight = false;
+    const streetLightsList = [];
+
+    function toggleDayNight() {
+      isNight = !isNight;
+      const btn = document.getElementById('btn-daynight');
+      if (isNight) {
+        btn.innerText = '🌙 Night';
+        scene.background = new THREE.Color(0x0c111e);
+        scene.fog.color = new THREE.Color(0x0c111e);
+        sunLight.intensity = 0.15;
+        sunLight.color = new THREE.Color(0x556699);
+        hemiLight.intensity = 0.2;
+        streetLightsList.forEach(l => l.visible = true);
+        carHeadlights.forEach(l => l.visible = true);
+        showToast("🌃 Night has fallen over Jaipur city!");
+      } else {
+        btn.innerText = '☀️ Day';
+        scene.background = new THREE.Color(0x87ceeb);
+        scene.fog.color = new THREE.Color(0x87ceeb);
+        sunLight.intensity = 1.2;
+        sunLight.color = new THREE.Color(0xfff5e6);
+        hemiLight.intensity = 0.65;
+        streetLightsList.forEach(l => l.visible = false);
+        carHeadlights.forEach(l => l.visible = false);
+        showToast("☀️ Beautiful sunny morning in Jaipur!");
+      }
+    }
+
+    // --- CITY WORLD GENERATION (JAIPUR / RAJASTHAN) ---
+    // Materials
+    const roadMat = new THREE.MeshLambertMaterial({ color: 0x272b34 });
+    const sidewalkMat = new THREE.MeshLambertMaterial({ color: 0xc8c3b9 });
+    const grassMat = new THREE.MeshLambertMaterial({ color: 0x8a9a5b });
+    const jaipurPinkMat = new THREE.MeshLambertMaterial({ color: 0xd97d64 }); // Terracotta Pink Stone
+    const jaipurDarkPinkMat = new THREE.MeshLambertMaterial({ color: 0xb55a42 });
+    const marbleWhiteMat = new THREE.MeshLambertMaterial({ color: 0xf5f3ee });
+    const goldMat = new THREE.MeshLambertMaterial({ color: 0xf1c40f });
+    const windowGlassMat = new THREE.MeshLambertMaterial({ color: 0x34495e });
+    const treeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
+    const palmLeafMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
+
+    // Ground plane
+    const groundGeo = new THREE.PlaneGeometry(600, 600);
+    const groundMesh = new THREE.Mesh(groundGeo, grassMat);
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
+
+    // Road Grid layout
+    const roadWidth = 14;
+    const roadsData = [
+      { x: 0, z: 0, lenX: 500, lenZ: roadWidth }, // Main East-West Boulevard
+      { x: 0, z: -100, lenX: 400, lenZ: roadWidth },
+      { x: 0, z: 100, lenX: 400, lenZ: roadWidth },
+      { x: 0, z: 0, lenX: roadWidth, lenZ: 500 }, // Main North-South Avenue
+      { x: -120, z: 0, lenX: roadWidth, lenZ: 400 },
+      { x: 120, z: 0, lenX: roadWidth, lenZ: 400 }
+    ];
+
+    roadsData.forEach(r => {
+      const rMesh = new THREE.Mesh(new THREE.PlaneGeometry(r.lenX, r.lenZ), roadMat);
+      rMesh.rotation.x = -Math.PI / 2;
+      rMesh.position.set(r.x, 0.05, r.z);
+      rMesh.receiveShadow = true;
+      scene.add(rMesh);
+
+      // Sidewalks
+      const swThickness = 2.5;
+      if (r.lenX > r.lenZ) {
+        // Horizontal road sidewalks
+        const sw1 = new THREE.Mesh(new THREE.BoxGeometry(r.lenX, 0.25, swThickness), sidewalkMat);
+        sw1.position.set(r.x, 0.125, r.z + r.lenZ / 2 + swThickness / 2);
+        scene.add(sw1);
+        const sw2 = new THREE.Mesh(new THREE.BoxGeometry(r.lenX, 0.25, swThickness), sidewalkMat);
+        sw2.position.set(r.x, 0.125, r.z - r.lenZ / 2 - swThickness / 2);
+        scene.add(sw2);
+      }
+    });
+
+    // Central Roundabout
+    const roundabout = new THREE.Mesh(new THREE.CylinderGeometry(18, 18, 0.5, 32), sidewalkMat);
+    roundabout.position.set(0, 0.25, 0);
+    scene.add(roundabout);
+    const centerFountain = new THREE.Mesh(new THREE.CylinderGeometry(6, 8, 3, 16), marbleWhiteMat);
+    centerFountain.position.set(0, 1.7, 0);
+    scene.add(centerFountain);
+    const fountainPillar = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.5, 7, 16), goldMat);
+    fountainPillar.position.set(0, 5, 0);
+    scene.add(fountainPillar);
+
+    // City Landmark: HAWA MAHAL PALACE
+    function buildHawaMahal(posX, posZ) {
+      const palaceGroup = new THREE.Group();
+      const baseW = 60, baseH = 26, baseD = 18;
+
+      // Tier 1 Base
+      const t1 = new THREE.Mesh(new THREE.BoxGeometry(baseW, 10, baseD), jaipurPinkMat);
+      t1.position.y = 5;
+      t1.castShadow = true;
+      palaceGroup.add(t1);
+
+      // Tier 2
+      const t2 = new THREE.Mesh(new THREE.BoxGeometry(baseW * 0.8, 8, baseD * 0.8), jaipurPinkMat);
+      t2.position.y = 14;
+      t2.castShadow = true;
+      palaceGroup.add(t2);
+
+      // Tier 3
+      const t3 = new THREE.Mesh(new THREE.BoxGeometry(baseW * 0.6, 6, baseD * 0.6), jaipurPinkMat);
+      t3.position.y = 21;
+      t3.castShadow = true;
+      palaceGroup.add(t3);
+
+      // Domes (Chhatris)
+      for (let i = -2; i <= 2; i++) {
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(2.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2), goldMat);
+        dome.position.set(i * 9, 24, 0);
+        palaceGroup.add(dome);
+
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 2, 8), marbleWhiteMat);
+        pillar.position.set(i * 9, 23, 0);
+        palaceGroup.add(pillar);
+      }
+
+      // Arched Jharokha Windows
+      for (let x = -20; x <= 20; x += 8) {
+        for (let y = 4; y <= 18; y += 5) {
+          const win = new THREE.Mesh(new THREE.BoxGeometry(3.5, 4, 0.5), jaipurDarkPinkMat);
+          win.position.set(x, y, baseD / 2 + 0.1);
+          palaceGroup.add(win);
+          const arch = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.5, 12, 1, false, 0, Math.PI), goldMat);
+          arch.rotation.z = Math.PI / 2;
+          arch.position.set(x, y + 2, baseD / 2 + 0.1);
+          palaceGroup.add(arch);
+        }
+      }
+
+      palaceGroup.position.set(posX, 0, posZ);
+      scene.add(palaceGroup);
+    }
+    buildHawaMahal(0, -180);
+
+    // City Buildings & Markets
+    const buildingsList = [
+      // Market Area (East)
+      { x: 70, z: 50, w: 24, h: 14, d: 20, col: jaipurPinkMat, label: "Johari Bazaar" },
+      { x: 105, z: 50, w: 22, h: 12, d: 18, col: jaipurDarkPinkMat, label: "Spice Market" },
+      { x: 70, z: 80, w: 20, h: 16, d: 22, col: marbleWhiteMat, label: "Chai Dhaba" },
+      { x: 105, z: 80, w: 26, h: 14, d: 20, col: jaipurPinkMat, label: "Textile Emporium" },
+
+      // Residential Sector (West)
+      { x: -70, z: 50, w: 25, h: 22, d: 24, col: 0x4a69bd, label: "Shanti Flats" },
+      { x: -105, z: 50, w: 22, h: 26, d: 20, col: 0x6a89cc, label: "Surya Heights" },
+      { x: -70, z: 80, w: 24, h: 20, d: 22, col: 0x78e08f, label: "Green Garden Villas" },
+      { x: -105, z: 80, w: 28, h: 28, d: 25, col: 0x38ada9, label: "Heritage Towers" },
+
+      // Tech Hub / Offices (North-West)
+      { x: -70, z: -50, w: 30, h: 32, d: 26, col: 0x1e3799, label: "Jaipur Tech Park" },
+      { x: -105, z: -50, w: 26, h: 24, d: 22, col: 0x0c2461, label: "Rajasthan Fintech" },
+
+      // Transport Hub (South-West)
+      { x: -160, z: 0, w: 35, h: 15, d: 45, col: 0xeb4d4b, label: "Central Bus Terminal" },
+
+      // Amber Viewpoint Scenic Hill (North-East)
+      { x: 180, z: -150, w: 50, h: 28, d: 50, col: 0x6ab04c, isHill: true, label: "Amber Hill" }
+    ];
+
+    buildingsList.forEach(b => {
+      const bMat = (typeof b.col === 'number') ? new THREE.MeshLambertMaterial({ color: b.col }) : b.col;
+      let mesh;
+      if (b.isHill) {
+        mesh = new THREE.Mesh(new THREE.ConeGeometry(b.w, b.h, 16), bMat);
+        mesh.position.set(b.x, b.h / 2, b.z);
+      } else {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), bMat);
+        mesh.position.set(b.x, b.h / 2, b.z);
+
+        // Windows on building facades
+        const winCols = 3, winRows = 4;
+        for (let r = 1; r <= winRows; r++) {
+          for (let c = -1; c <= 1; c++) {
+            const win = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.2), windowGlassMat);
+            win.position.set(b.x + c * (b.w / 4), r * (b.h / (winRows + 1)), b.z + b.d / 2 + 0.05);
+            scene.add(win);
+          }
+        }
+      }
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    });
+
+    // Palm Trees & Streetlamps
+    function createPalmTree(x, z) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 6, 8), treeTrunkMat);
+      trunk.position.y = 3;
+      tree.add(trunk);
+
+      for (let i = 0; i < 6; i++) {
+        const leaf = new THREE.Mesh(new THREE.ConeGeometry(1.4, 4.5, 5), palmLeafMat);
+        leaf.position.set(0, 6, 0);
+        leaf.rotation.z = 0.8;
+        leaf.rotation.y = (i * Math.PI) / 3;
+        tree.add(leaf);
+      }
+      tree.position.set(x, 0, z);
+      scene.add(tree);
+    }
+
+    function createStreetLamp(x, z) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 6, 8), new THREE.MeshLambertMaterial({ color: 0x111111 }));
+      pole.position.set(x, 3, z);
+      scene.add(pole);
+
+      const lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffeaa7 }));
+      lampHead.position.set(x, 6, z);
+      scene.add(lampHead);
+
+      const light = new THREE.PointLight(0xffbe76, 1.2, 28);
+      light.position.set(x, 5.8, z);
+      light.visible = false;
+      scene.add(light);
+      streetLightsList.push(light);
+    }
+
+    // Place trees and lamps along avenues
+    for (let x = -140; x <= 140; x += 35) {
+      if (Math.abs(x) > 20) {
+        createPalmTree(x, 10);
+        createPalmTree(x, -10);
+        createStreetLamp(x + 12, 8.5);
+        createStreetLamp(x + 12, -8.5);
+      }
+    }
+
+    // --- 3D PLAYER CHARACTER ---
+    const playerGroup = new THREE.Group();
+    playerGroup.position.set(0, 0, 25);
+    scene.add(playerGroup);
+
+    // Body parts
+    const skinToneMat = new THREE.MeshLambertMaterial({ color: 0xc68642 });
+    const hairMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+    const kurtaMat = new THREE.MeshLambertMaterial({ color: 0xeb4d4b }); // Traditional red kurta
+    const pajamaMat = new THREE.MeshLambertMaterial({ color: 0xf5f6fa }); // White pajama
+
+    // Head & Hair
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), skinToneMat);
+    head.position.y = 1.7;
+    playerGroup.add(head);
+
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2), hairMat);
+    hair.position.y = 1.75;
+    playerGroup.add(hair);
+
+    // Torso (Kurta)
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.85, 0.4), kurtaMat);
+    torso.position.y = 1.1;
+    torso.castShadow = true;
+    playerGroup.add(torso);
+
+    // Legs
+    const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.75, 0.25), pajamaMat);
+    leftLeg.position.set(-0.2, 0.4, 0);
+    playerGroup.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.75, 0.25), pajamaMat);
+    rightLeg.position.set(0.2, 0.4, 0);
+    playerGroup.add(rightLeg);
+
+    // Arms
+    const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.22), kurtaMat);
+    leftArm.position.set(-0.48, 1.1, 0);
+    playerGroup.add(leftArm);
+
+    const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.7, 0.22), kurtaMat);
+    rightArm.position.set(0.48, 1.1, 0);
+    playerGroup.add(rightArm);
+
+    // Player state
+    let playerSpeed = 0;
+    const walkSpeed = 6.5;
+    const sprintSpeed = 12.0;
+    let isSprinting = false;
+    let isGrounded = true;
+    let playerVelocityY = 0;
+    let animTime = 0;
+
+    // --- 3D VEHICLES (CAR & BIKE) ---
+    const carHeadlights = [];
+
+    // 1. SPORTS CAR ("Desi Cruiser")
+    const carGroup = new THREE.Group();
+    carGroup.position.set(12, 0, 15);
+    scene.add(carGroup);
+
+    const carPaintMat = new THREE.MeshLambertMaterial({ color: 0xd32f2f });
+    const wheelMat = new THREE.MeshLambertMaterial({ color: 0x1e272e });
+    const chromeMat = new THREE.MeshLambertMaterial({ color: 0xdfe4ea });
+
+    // Car Body
+    const carChassis = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.7, 4.8), carPaintMat);
+    carChassis.position.y = 0.6;
+    carChassis.castShadow = true;
+    carGroup.add(carChassis);
+
+    const carCabin = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 2.4), windowGlassMat);
+    carCabin.position.set(0, 1.15, -0.2);
+    carCabin.castShadow = true;
+    carGroup.add(carCabin);
+
+    // Wheels
+    const carWheelMeshes = [];
+    const wheelPos = [
+      [-1.15, 0.4, 1.5], [1.15, 0.4, 1.5],
+      [-1.15, 0.4, -1.5], [1.15, 0.4, -1.5]
+    ];
+    wheelPos.forEach(p => {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.35, 16), wheelMat);
+      w.rotation.z = Math.PI / 2;
+      w.position.set(p[0], p[1], p[2]);
+      carGroup.add(w);
+      carWheelMeshes.push(w);
+    });
+
+    // Headlights
+    const hlLeft = new THREE.SpotLight(0xffffff, 2.0, 45, Math.PI / 5, 0.3);
+    hlLeft.position.set(-0.8, 0.6, 2.4);
+    hlLeft.target.position.set(-0.8, 0, 15);
+    hlLeft.visible = false;
+    carGroup.add(hlLeft);
+    carGroup.add(hlLeft.target);
+    carHeadlights.push(hlLeft);
+
+    const hlRight = new THREE.SpotLight(0xffffff, 2.0, 45, Math.PI / 5, 0.3);
+    hlRight.position.set(0.8, 0.6, 2.4);
+    hlRight.target.position.set(0.8, 0, 15);
+    hlRight.visible = false;
+    carGroup.add(hlRight);
+    carGroup.add(hlRight.target);
+    carHeadlights.push(hlRight);
+
+    // 2. MOTORCYCLE ("Rajputana 350")
+    const bikeGroup = new THREE.Group();
+    bikeGroup.position.set(-12, 0, 15);
+    scene.add(bikeGroup);
+
+    const bikeFrame = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 2.2), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    bikeFrame.position.y = 0.65;
+    bikeGroup.add(bikeFrame);
+
+    const bikeTank = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.9), carPaintMat);
+    bikeTank.position.set(0, 0.95, 0.1);
+    bikeGroup.add(bikeTank);
+
+    const bikeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 8), chromeMat);
+    bikeHandle.rotation.z = Math.PI / 2;
+    bikeHandle.position.set(0, 1.15, 0.65);
+    bikeGroup.add(bikeHandle);
+
+    const bikeFrontWheel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.2, 16), wheelMat);
+    bikeFrontWheel.rotation.z = Math.PI / 2;
+    bikeFrontWheel.position.set(0, 0.42, 1.1);
+    bikeGroup.add(bikeFrontWheel);
+
+    const bikeRearWheel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.2, 16), wheelMat);
+    bikeRearWheel.rotation.z = Math.PI / 2;
+    bikeRearWheel.position.set(0, 0.42, -0.9);
+    bikeGroup.add(bikeRearWheel);
+
+    // Active Driving States
+    let activeVehicle = null; // null = on foot, 'car', 'bike'
+    let vehicleSpeed = 0;
+    const maxCarSpeed = 48; // m/s (~160 km/h)
+    const maxBikeSpeed = 38; // m/s (~135 km/h)
+    let vehicleSteering = 0;
+
+    function setVehicleColor(hex, el) {
+      gameSave.carColor = hex;
+      carPaintMat.color.set(hex);
+      bikeTank.material.color.set(hex);
+      document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      if (el) el.classList.add('active');
+      saveGameProgress();
+    }
+
+    // --- MISSION SYSTEM (5 GDD MVP MISSIONS) ---
+    const MISSIONS = [
+      {
+        id: "m_delivery",
+        type: "DELIVERY",
+        title: "Jaipur Chai & Parcel Delivery",
+        desc: "Pick up chai & tiffin parcel from Old Johari Market and deliver to Jaipur Tech Park before tea cools!",
+        rewardCoins: 300,
+        rewardXP: 150,
+        timeLimit: 85,
+        stages: [
+          { x: 80, z: 60, radius: 8, label: "Collect parcel at Johari Market" },
+          { x: -70, z: -50, radius: 9, label: "Deliver to Tech Park Gate" }
+        ]
+      },
+      {
+        id: "m_taxi",
+        type: "TAXI",
+        title: "City Taxi: Tourist to Palace",
+        desc: "Pick up a tourist from Central Bus Terminal and drive them safely to the Grand Hawa Palace.",
+        rewardCoins: 450,
+        rewardXP: 220,
+        timeLimit: 110,
+        stages: [
+          { x: -160, z: 0, radius: 9, label: "Pick up passenger at Bus Terminal" },
+          { x: 0, z: -150, radius: 10, label: "Drop passenger at Hawa Palace Gate" }
+        ]
+      },
+      {
+        id: "m_speedway",
+        type: "DRIVING CHALLENGE",
+        title: "Rajasthan Speedway Sprint",
+        desc: "Test your driving skills! Pass through 4 neon checkpoints across the main boulevards within 60s.",
+        rewardCoins: 250,
+        rewardXP: 380,
+        timeLimit: 60,
+        stages: [
+          { x: 0, z: 80, radius: 9, label: "Sprint Checkpoint 1 (North Ave)" },
+          { x: 100, z: 0, radius: 9, label: "Sprint Checkpoint 2 (East Plaza)" },
+          { x: 0, z: -80, radius: 9, label: "Sprint Checkpoint 3 (South Gate)" },
+          { x: -100, z: 0, radius: 9, label: "Sprint Checkpoint 4 (Finish Line)" }
+        ]
+      },
+      {
+        id: "m_exploration",
+        type: "EXPLORATION",
+        title: "Discover Amber Hill Viewpoint",
+        desc: "Navigate uphill to the scenic viewpoint overlooking the Jaipur city skyline.",
+        rewardCoins: 200,
+        rewardXP: 300,
+        timeLimit: 0,
+        stages: [
+          { x: 180, z: -150, radius: 12, label: "Reach Amber Hill Scenic Peak" }
+        ]
+      },
+      {
+        id: "m_photo",
+        type: "PHOTOGRAPHY",
+        title: "Hawa Mahal Tourist Snap",
+        desc: "Reach the royal viewpoint in front of Hawa Mahal and snap a photo for the tourist board.",
+        rewardCoins: 500,
+        rewardXP: 200,
+        timeLimit: 90,
+        stages: [
+          { x: 0, z: -140, radius: 8, label: "Stand in front of Hawa Mahal facade" }
+        ]
+      }
+    ];
+
+    let currentMission = null;
+    let currentStageIndex = 0;
+    let missionTimeLeft = 0;
+
+    // Glowing Waypoint Marker in 3D World
+    const waypointGroup = new THREE.Group();
+    waypointGroup.visible = false;
+    scene.add(waypointGroup);
+
+    const wpBeacon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 4, 30, 16, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xff9f43, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
+    );
+    wpBeacon.position.y = 15;
+    waypointGroup.add(wpBeacon);
+
+    const wpRing = new THREE.Mesh(
+      new THREE.RingGeometry(3.5, 4.5, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffa801, side: THREE.DoubleSide })
+    );
+    wpRing.rotation.x = -Math.PI / 2;
+    wpRing.position.y = 0.2;
+    waypointGroup.add(wpRing);
+
+    function startMission(m) {
+      currentMission = m;
+      currentStageIndex = 0;
+      missionTimeLeft = m.timeLimit;
+      closeModal('missions-modal');
+
+      document.getElementById('mission-banner').classList.remove('hidden');
+      document.getElementById('mission-type-tag').innerText = m.type;
+      document.getElementById('mission-title').innerText = m.title;
+      updateMissionStageUI();
+
+      updateWaypointPosition();
+      showToast(`🎯 Started: ${m.title}`);
+      playSound('ding');
+    }
+
+    function updateMissionStageUI() {
+      if (!currentMission) return;
+      const stage = currentMission.stages[currentStageIndex];
+      document.getElementById('mission-desc').innerText = stage.label;
+    }
+
+    function updateWaypointPosition() {
+      if (!currentMission || currentStageIndex >= currentMission.stages.length) {
+        waypointGroup.visible = false;
+        return;
+      }
+      const st = currentMission.stages[currentStageIndex];
+      waypointGroup.position.set(st.x, 0, st.z);
+      waypointGroup.visible = true;
+    }
+
+    function advanceMissionStage() {
+      currentStageIndex++;
+      playSound('ding');
+      if (currentStageIndex >= currentMission.stages.length) {
+        // Mission Completed!
+        const earnedCoins = currentMission.rewardCoins;
+        const earnedXP = currentMission.rewardXP;
+        addRewards(earnedCoins, earnedXP);
+        showToast(`🏆 MISSION COMPLETE! Earned +₹${earnedCoins} and +${earnedXP} XP!`);
+        playSound('success');
+
+        document.getElementById('mission-banner').classList.add('hidden');
+        waypointGroup.visible = false;
+        currentMission = null;
+      } else {
+        showToast(`Checkpoint reached! Proceed to next location.`);
+        updateMissionStageUI();
+        updateWaypointPosition();
+      }
+    }
+
+    // Populate Missions UI List
+    function renderMissionsList() {
+      const container = document.getElementById('missions-list-container');
+      container.innerHTML = '';
+      MISSIONS.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'mission-item-card';
+        item.innerHTML = `
+          <div class="mission-info">
+            <h4>${m.title}</h4>
+            <p>${m.desc}</p>
+            <span class="mission-reward-tag">🪙 ₹${m.rewardCoins} | ⭐ ${m.rewardXP} XP ${m.timeLimit ? `| ⏱️ ${m.timeLimit}s` : ''}</span>
+          </div>
+          <button class="start-btn" onclick='startMission(${JSON.stringify(m)})'>Start</button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // --- CONTROLS & INPUT SYSTEM ---
+    const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+    const joystick = { x: 0, y: 0, active: false };
+
+    window.addEventListener('keydown', e => {
+      initEngineAudio();
+      const k = e.key.toLowerCase();
+      if (k === 'w' || k === 'arrowup') keys.w = true;
+      if (k === 'a' || k === 'arrowleft') keys.a = true;
+      if (k === 's' || k === 'arrowdown') keys.s = true;
+      if (k === 'd' || k === 'arrowright') keys.d = true;
+      if (e.key === 'Shift') keys.shift = true;
+      if (e.key === ' ') { keys.space = true; e.preventDefault(); }
+      if (k === 'f' || k === 'e') toggleEnterExitVehicle();
+      if (k === 'h') playSound('horn');
+      if (k === 'c') toggleCameraView();
+      if (k === 'l') toggleDayNight();
+    });
+
+    window.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if (k === 'w' || k === 'arrowup') keys.w = false;
+      if (k === 'a' || k === 'arrowleft') keys.a = false;
+      if (k === 's' || k === 'arrowdown') keys.s = false;
+      if (k === 'd' || k === 'arrowright') keys.d = false;
+      if (e.key === 'Shift') keys.shift = false;
+      if (e.key === ' ') keys.space = false;
+    });
+
+    // Touch Virtual Joystick
+    const joyZone = document.getElementById('joystick-zone');
+    const joyKnob = document.getElementById('joystick-knob');
+    let joyTouchId = null;
+    let joyCenter = { x: 0, y: 0 };
+
+    joyZone.addEventListener('touchstart', e => {
+      initEngineAudio();
+      const touch = e.changedTouches[0];
+      joyTouchId = touch.identifier;
+      const rect = joyZone.getBoundingClientRect();
+      joyCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      handleJoyMove(touch.clientX, touch.clientY);
+    });
+
+    window.addEventListener('touchmove', e => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyTouchId) {
+          handleJoyMove(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+          break;
+        }
+      }
+    });
+
+    function handleJoyMove(x, y) {
+      const dx = x - joyCenter.x;
+      const dy = y - joyCenter.y;
+      const dist = Math.min(Math.sqrt(dx * dx + dy * dy), 48);
+      const angle = Math.atan2(dy, dx);
+      const kx = Math.cos(angle) * dist;
+      const ky = Math.sin(angle) * dist;
+      joyKnob.style.transform = `translate(${kx}px, ${ky}px)`;
+      joystick.x = kx / 48;
+      joystick.y = -ky / 48; // Invert for forward
+      joystick.active = true;
+    }
+
+    function resetJoystick() {
+      joyKnob.style.transform = 'translate(0px, 0px)';
+      joystick.x = 0;
+      joystick.y = 0;
+      joystick.active = false;
+      joyTouchId = null;
+    }
+    window.addEventListener('touchend', e => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === joyTouchId) {
+          resetJoystick();
+          break;
+        }
+      }
+    });
+
+    // Mobile Action Buttons
+    document.getElementById('btn-jump').addEventListener('touchstart', e => {
+      e.preventDefault();
+      triggerJump();
+    });
+    document.getElementById('btn-sprint').addEventListener('touchstart', e => {
+      e.preventDefault();
+      isSprinting = !isSprinting;
+      document.getElementById('btn-sprint').style.background = isSprinting ? '#ff9f43' : 'rgba(20, 26, 42, 0.85)';
+    });
+    document.getElementById('btn-horn').addEventListener('touchstart', e => {
+      e.preventDefault();
+      playSound('horn');
+    });
+
+    function triggerJump() {
+      if (isGrounded && !activeVehicle) {
+        playerVelocityY = 9.5;
+        isGrounded = false;
+        playSound('step');
+      }
+    }
+
+    // Touch Swipe Camera Look & Mouse Drag
+    let isDraggingCam = false;
+    let prevMouseX = 0, prevMouseY = 0;
+    let camYaw = 0, camPitch = 0.35, camDistance = 8.5;
+    let isFirstPerson = false;
+
+    window.addEventListener('mousedown', e => {
+      if (e.target.id === 'game-canvas' || e.target.tagName === 'CANVAS') {
+        isDraggingCam = true;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      }
+    });
+    window.addEventListener('mousemove', e => {
+      if (!isDraggingCam) return;
+      const dx = e.clientX - prevMouseX;
+      const dy = e.clientY - prevMouseY;
+      camYaw -= dx * 0.006;
+      camPitch = Math.max(0.08, Math.min(Math.PI / 2.3, camPitch + dy * 0.005));
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => isDraggingCam = false);
+    window.addEventListener('wheel', e => {
+      camDistance = Math.max(3.5, Math.min(18.0, camDistance + e.deltaY * 0.01));
+    });
+
+    // Touch Camera Orbit (on right half of screen)
+    let camTouchId = null;
+    let prevTouchX = 0, prevTouchY = 0;
+    window.addEventListener('touchstart', e => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.clientX > window.innerWidth * 0.45 && camTouchId === null) {
+          camTouchId = t.identifier;
+          prevTouchX = t.clientX;
+          prevTouchY = t.clientY;
+          break;
+        }
+      }
+    });
+    window.addEventListener('touchmove', e => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === camTouchId) {
+          const dx = t.clientX - prevTouchX;
+          const dy = t.clientY - prevTouchY;
+          camYaw -= dx * 0.008;
+          camPitch = Math.max(0.08, Math.min(Math.PI / 2.3, camPitch + dy * 0.007));
+          prevTouchX = t.clientX;
+          prevTouchY = t.clientY;
+          break;
+        }
+      }
+    });
+    window.addEventListener('touchend', e => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === camTouchId) {
+          camTouchId = null;
+          break;
+        }
+      }
+    });
+
+    function toggleCameraView() {
+      isFirstPerson = !isFirstPerson;
+      showToast(isFirstPerson ? "🎥 First-Person Camera" : "🎥 Third-Person Camera");
+    }
+
+    // Enter / Exit Vehicle
+    const vehicleActionBtn = document.getElementById('vehicle-action-btn');
+    vehicleActionBtn.addEventListener('click', toggleEnterExitVehicle);
+
+    function toggleEnterExitVehicle() {
+      if (activeVehicle) {
+        // Exit
+        const exitPos = (activeVehicle === 'car' ? carGroup.position : bikeGroup.position).clone();
+        exitPos.x -= 2.2;
+        playerGroup.position.copy(exitPos);
+        playerGroup.position.y = 0;
+        playerGroup.visible = true;
+
+        activeVehicle = null;
+        vehicleSpeed = 0;
+        updateEngineSound(0, false);
+        document.getElementById('speedo-container').style.display = 'none';
+        showToast("🚶 Stepped out of vehicle.");
+      } else {
+        // Enter check
+        const distCar = playerGroup.position.distanceTo(carGroup.position);
+        const distBike = playerGroup.position.distanceTo(bikeGroup.position);
+
+        if (distCar < 4.0) {
+          activeVehicle = 'car';
+          playerGroup.visible = false;
+          document.getElementById('speedo-container').style.display = 'flex';
+          showToast("🏎️ Driving Desi Cruiser Car!");
+          playSound('ding');
+        } else if (distBike < 3.5) {
+          activeVehicle = 'bike';
+          playerGroup.visible = false;
+          document.getElementById('speedo-container').style.display = 'flex';
+          showToast("🏍️ Riding Rajputana 350 Bike!");
+          playSound('ding');
+        }
+      }
+    }
+
+    // Modal Helpers
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+      if (id === 'missions-modal') renderMissionsList();
+    }
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    document.getElementById('btn-missions').addEventListener('click', () => openModal('missions-modal'));
+    document.getElementById('btn-garage').addEventListener('click', () => openModal('garage-modal'));
+    document.getElementById('btn-daynight').addEventListener('click', toggleDayNight);
+    document.getElementById('btn-camera').addEventListener('click', toggleCameraView);
+
+    document.getElementById('select-car-btn').addEventListener('click', () => {
+      carGroup.position.set(playerGroup.position.x + 3, 0, playerGroup.position.z);
+      showToast("🏎️ Desi Cruiser spawned nearby!");
+      closeModal('garage-modal');
+    });
+    document.getElementById('select-bike-btn').addEventListener('click', () => {
+      bikeGroup.position.set(playerGroup.position.x + 3, 0, playerGroup.position.z);
+      showToast("🏍️ Rajputana 350 Bike spawned nearby!");
+      closeModal('garage-modal');
+    });
+
+    // --- 2D MINIMAP RADAR CANVAS ---
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const mmCtx = minimapCanvas.getContext('2d');
+    const mapScale = 0.55; // World coords to minimap pixels
+
+    function drawMinimap() {
+      mmCtx.clearRect(0, 0, 130, 130);
+      const centerX = 65, centerY = 65;
+
+      const currentPos = activeVehicle === 'car' ? carGroup.position : (activeVehicle === 'bike' ? bikeGroup.position : playerGroup.position);
+
+      // Draw Roads
+      mmCtx.save();
+      mmCtx.translate(centerX, centerY);
+      mmCtx.rotate(camYaw);
+
+      mmCtx.fillStyle = '#2f3542';
+      roadsData.forEach(r => {
+        const rx = (r.x - currentPos.x) * mapScale;
+        const rz = (r.z - currentPos.z) * mapScale;
+        const rw = r.lenX * mapScale;
+        const rh = r.lenZ * mapScale;
+        mmCtx.fillRect(rx - rw/2, rz - rh/2, rw, rh);
+      });
+
+      // Draw Objective Marker if mission active
+      if (currentMission && currentStageIndex < currentMission.stages.length) {
+        const st = currentMission.stages[currentStageIndex];
+        const ox = (st.x - currentPos.x) * mapScale;
+        const oz = (st.z - currentPos.z) * mapScale;
+        mmCtx.fillStyle = '#ffa801';
+        mmCtx.beginPath();
+        mmCtx.arc(ox, oz, 5.5, 0, Math.PI * 2);
+        mmCtx.fill();
+        mmCtx.strokeStyle = '#ffffff';
+        mmCtx.lineWidth = 1.5;
+        mmCtx.stroke();
+      }
+
+      // Draw Vehicles Icons
+      if (activeVehicle !== 'car') {
+        const cx = (carGroup.position.x - currentPos.x) * mapScale;
+        const cz = (carGroup.position.z - currentPos.z) * mapScale;
+        mmCtx.fillStyle = '#eb4d4b';
+        mmCtx.fillRect(cx - 3, cz - 3, 6, 6);
+      }
+      if (activeVehicle !== 'bike') {
+        const bx = (bikeGroup.position.x - currentPos.x) * mapScale;
+        const bz = (bikeGroup.position.z - currentPos.z) * mapScale;
+        mmCtx.fillStyle = '#4cd137';
+        mmCtx.fillRect(bx - 2.5, bz - 2.5, 5, 5);
+      }
+
+      mmCtx.restore();
+
+      // Center Player Arrow
+      mmCtx.fillStyle = '#ff9f43';
+      mmCtx.beginPath();
+      mmCtx.moveTo(centerX, centerY - 7);
+      mmCtx.lineTo(centerX - 5, centerY + 5);
+      mmCtx.lineTo(centerX + 5, centerY + 5);
+      mmCtx.closePath();
+      mmCtx.fill();
+      mmCtx.strokeStyle = '#fff';
+      mmCtx.lineWidth = 1.5;
+      mmCtx.stroke();
+    }
+
+    // --- MAIN GAME LOOP ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.1);
+      animTime += delta;
+
+      // Pulse waypoint ring
+      if (waypointGroup.visible) {
+        wpRing.scale.set(1 + Math.sin(animTime * 4) * 0.15, 1 + Math.sin(animTime * 4) * 0.15, 1);
+        wpBeacon.rotation.y += delta * 0.8;
+      }
+
+      // Read Input Vectors
+      let inputForward = 0, inputTurn = 0;
+      if (keys.w) inputForward += 1;
+      if (keys.s) inputForward -= 1;
+      if (keys.a) inputTurn -= 1;
+      if (keys.d) inputTurn += 1;
+
+      if (joystick.active) {
+        inputForward = joystick.y;
+        inputTurn = joystick.x;
+      }
+
+      // 1. ON-FOOT PLAYER LOGIC
+      if (!activeVehicle) {
+        const moveMagnitude = Math.sqrt(inputForward * inputForward + inputTurn * inputTurn);
+
+        if (moveMagnitude > 0.1) {
+          const moveAngle = Math.atan2(inputTurn, inputForward) + camYaw;
+          const speed = (isSprinting || keys.shift) ? sprintSpeed : walkSpeed;
+          playerGroup.rotation.y = THREE.MathUtils.lerp(playerGroup.rotation.y, moveAngle, 0.18);
+
+          playerGroup.position.x += Math.sin(moveAngle) * speed * delta;
+          playerGroup.position.z += Math.cos(moveAngle) * speed * delta;
+
+          // Leg & Arm procedural animation
+          const legSwing = Math.sin(animTime * (speed > 8 ? 14 : 9)) * 0.6;
+          leftLeg.rotation.x = legSwing;
+          rightLeg.rotation.x = -legSwing;
+          leftArm.rotation.x = -legSwing;
+          rightArm.rotation.x = legSwing;
+          torso.position.y = 1.1 + Math.abs(Math.sin(animTime * 10)) * 0.08;
+
+          if (Math.abs(legSwing) > 0.55 && isGrounded && Math.random() < 0.15) {
+            playSound('step');
+          }
+        } else {
+          // Idle pose
+          leftLeg.rotation.x = THREE.MathUtils.lerp(leftLeg.rotation.x, 0, 0.2);
+          rightLeg.rotation.x = THREE.MathUtils.lerp(rightLeg.rotation.x, 0, 0.2);
+          leftArm.rotation.x = THREE.MathUtils.lerp(leftArm.rotation.x, 0, 0.2);
+          rightArm.rotation.x = THREE.MathUtils.lerp(rightArm.rotation.x, 0, 0.2);
+          torso.position.y = 1.1;
+        }
+
+        // Jump Physics
+        if (!isGrounded) {
+          playerGroup.position.y += playerVelocityY * delta;
+          playerVelocityY -= 22 * delta; // Gravity
+          if (playerGroup.position.y <= 0) {
+            playerGroup.position.y = 0;
+            playerVelocityY = 0;
+            isGrounded = true;
+          }
+        } else if (keys.space) {
+          triggerJump();
+        }
+
+        // Check vehicle interaction proximity
+        const distCar = playerGroup.position.distanceTo(carGroup.position);
+        const distBike = playerGroup.position.distanceTo(bikeGroup.position);
+        if (distCar < 3.8) {
+          vehicleActionBtn.style.display = 'flex';
+          document.getElementById('vehicle-action-text').innerText = 'DRIVE CAR [F]';
+        } else if (distBike < 3.2) {
+          vehicleActionBtn.style.display = 'flex';
+          document.getElementById('vehicle-action-text').innerText = 'RIDE BIKE [F]';
+        } else {
+          vehicleActionBtn.style.display = 'none';
+        }
+      }
+
+      // 2. VEHICLE DRIVING LOGIC (CAR / BIKE)
+      if (activeVehicle) {
+        vehicleActionBtn.style.display = 'flex';
+        document.getElementById('vehicle-action-text').innerText = 'EXIT VEHICLE [F]';
+
+        const currVeh = activeVehicle === 'car' ? carGroup : bikeGroup;
+        const maxSpd = activeVehicle === 'car' ? maxCarSpeed : maxBikeSpeed;
+        const accelRate = activeVehicle === 'car' ? 22 : 28;
+        const brakeRate = 32;
+
+        // Accelerate & Brake
+        if (inputForward > 0.1) {
+          vehicleSpeed = Math.min(maxSpd, vehicleSpeed + accelRate * delta * inputForward);
+        } else if (inputForward < -0.1) {
+          vehicleSpeed = Math.max(-12, vehicleSpeed - brakeRate * delta * Math.abs(inputForward));
+        } else {
+          // Friction deceleration
+          vehicleSpeed = THREE.MathUtils.lerp(vehicleSpeed, 0, delta * 1.8);
+        }
+
+        // Handbrake
+        if (keys.space) {
+          vehicleSpeed = THREE.MathUtils.lerp(vehicleSpeed, 0, delta * 5.0);
+        }
+
+        // Steering
+        if (Math.abs(vehicleSpeed) > 0.2) {
+          const steerSpeed = (activeVehicle === 'bike' ? 2.2 : 1.7) * (vehicleSpeed > 0 ? 1 : -1);
+          currVeh.rotation.y -= inputTurn * steerSpeed * delta;
+
+          // Bike dynamic cornering lean
+          if (activeVehicle === 'bike') {
+            const targetLean = -inputTurn * 0.38 * Math.min(1, Math.abs(vehicleSpeed) / 15);
+            bikeFrame.rotation.z = THREE.MathUtils.lerp(bikeFrame.rotation.z, targetLean, 0.15);
+          }
+        }
+
+        // Move vehicle forward along heading
+        const forwardVector = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), currVeh.rotation.y);
+        currVeh.position.addScaledVector(forwardVector, vehicleSpeed * delta);
+
+        // Spin wheels
+        const wheelSpin = (vehicleSpeed / 0.45) * delta;
+        if (activeVehicle === 'car') {
+          carWheelMeshes.forEach(w => w.rotation.x += wheelSpin);
+        } else {
+          bikeFrontWheel.rotation.x += wheelSpin;
+          bikeRearWheel.rotation.x += wheelSpin;
+        }
+
+        // Speedometer UI & Audio Engine
+        const speedKmH = Math.round(Math.abs(vehicleSpeed) * 3.6);
+        document.getElementById('speedo-val').innerText = speedKmH;
+        updateEngineSound(Math.abs(vehicleSpeed) / maxSpd, true);
+      }
+
+      // 3. CAMERA ORBIT & TARGET FOLLOW
+      const targetObj = activeVehicle === 'car' ? carGroup : (activeVehicle === 'bike' ? bikeGroup : playerGroup);
+      const targetPos = targetObj.position.clone();
+
+      if (isFirstPerson) {
+        targetPos.y += 1.7;
+        const camDir = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), camYaw);
+        camera.position.copy(targetPos);
+        camera.lookAt(targetPos.clone().add(camDir));
+      } else {
+        targetPos.y += activeVehicle ? 1.4 : 1.3;
+        const currentDist = activeVehicle ? camDistance * 1.3 : camDistance;
+        const offsetX = Math.sin(camYaw) * Math.cos(camPitch) * currentDist;
+        const offsetY = Math.sin(camPitch) * currentDist;
+        const offsetZ = Math.cos(camYaw) * Math.cos(camPitch) * currentDist;
+
+        camera.position.set(targetPos.x + offsetX, targetPos.y + offsetY, targetPos.z + offsetZ);
+        camera.lookAt(targetPos);
+      }
+
+      // 4. MISSION TRACKING & CHECKPOINT TRIGGER
+      if (currentMission && currentStageIndex < currentMission.stages.length) {
+        const stage = currentMission.stages[currentStageIndex];
+        const dist = targetObj.position.distanceTo(new THREE.Vector3(stage.x, 0, stage.z));
+        document.getElementById('mission-dist').innerText = `${Math.round(dist)}m`;
+
+        // Check trigger radius
+        if (dist <= stage.radius) {
+          advanceMissionStage();
+        }
+
+        // Mission Timer countdown
+        if (currentMission.timeLimit > 0) {
+          missionTimeLeft -= delta;
+          const mins = Math.floor(Math.max(0, missionTimeLeft) / 60);
+          const secs = Math.floor(Math.max(0, missionTimeLeft) % 60);
+          document.getElementById('mission-timer').innerText = `⏱️ ${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+          if (missionTimeLeft <= 0) {
+            showToast("❌ Mission Failed: Time ran out!");
+            playSound('horn');
+            currentMission = null;
+            document.getElementById('mission-banner').classList.add('hidden');
+            waypointGroup.visible = false;
+          }
+        }
+      }
+
+      // 5. RENDER MINIMAP & 3D SCENE
+      drawMinimap();
+      renderer.render(scene, camera);
+    }
+
+    // Window Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize Save on startup
+    loadGameSave();
+    animate();
+    showToast("🇮🇳 Welcome to CITY LIFE INDIA! Tap Missions or hop in a car!");
+  </script>
+</body>
+</html>
